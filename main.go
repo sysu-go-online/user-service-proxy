@@ -42,6 +42,7 @@ func handleClientRequest(client net.Conn) {
 		return
 	}
 	b = b[:n]
+	fmt.Println(string(b))
 
 	var method, uri, host string
 	fmt.Sscanf(string(b[:bytes.IndexByte(b[:], '\n')]), "%s%s", &method, &uri)
