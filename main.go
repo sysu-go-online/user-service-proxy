@@ -70,10 +70,13 @@ func handleClientRequest(client net.Conn) {
 
 	hostname := strings.Split(host[:len(host)-1], ".")
 	if len(hostname) < 2 {
-		tmp := strings.Split(hostname[1], ":")
-		if tmp[0] != DOMAINNAME {
-			fmt.Println("Invalid url hostname")
-		}
+		fmt.Println("Invalid url hostname")
+		return
+	}
+	tmp := strings.Split(hostname[1], ":")
+	if tmp[0] != DOMAINNAME {
+		fmt.Println("Invalid url hostname")
+		return
 	}
 	url := "http://" + CONSULADDRESS + CONSULPORT + "/v1/kv/upstreams/"
 	addr, err := model.GetValueWithKey(hostname[0], url)
