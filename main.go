@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"bufio"
+	"bytes"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 
@@ -41,15 +43,18 @@ func handleClientRequest(client net.Conn) {
 		return
 	}
 	b = b[:n]
-	fmt.Println(string(b))
+	// parse to golang http request
+	r := bytes.NewReader(b)
+	reader := bufio.NewReader(r)
+	req, err := http.ReadRequest(reader)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	var method, host string
-	// Get method and uri
-	header := strings.Split(string(b), "\r\n")
-	method = strings.Split(header[0], " ")[0]
-	// uri = strings.Split(header[0], " ")[1]
-
-	host = header[1][6:]
+	// Get host
+	host := req.Host
+	host = strings.Split(host, ".")[0]
 
 	// get address from consul
 	CONSULADDRESS := os.Getenv("CONSUL_ADDRESS")
@@ -64,11 +69,10 @@ func handleClientRequest(client net.Conn) {
 		CONSULPORT = ":" + CONSULPORT
 	}
 
-	hostname := strings.Split(host, ".")
 	url := "http://" + CONSULADDRESS + CONSULPORT + "/v1/kv/upstreams/"
-	addr, err := model.GetValueWithKey(hostname[0], url)
+	addr, err := model.GetValueWithKey(host, url)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
@@ -78,11 +82,7 @@ func handleClientRequest(client net.Conn) {
 		log.Println(err)
 		return
 	}
-	if method == "CONNECT" {
-		fmt.Println("HTTP/1.1 200 Connection established")
-	} else {
-		server.Write(b)
-	}
+	server.Write(b)
 
 	go io.Copy(server, client)
 	io.Copy(client, server)
